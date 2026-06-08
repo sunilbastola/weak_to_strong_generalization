@@ -3,6 +3,8 @@ import numpy as np
 import torch
 from torch import nn
 
+from weak_to_strong.common import get_device
+
 
 def to_batch(x, batch_size):
     for i in range(0, len(x), batch_size):
@@ -34,9 +36,15 @@ def eval_model_acc(model: nn.Module, ds: datasets.Dataset, eval_batch_size: int 
         # for ex in ds:
         for batch in to_batch(ds, eval_batch_size):
             # pad input_ids to common length
+            # Use model's device if available, otherwise fall back to dynamic device detection
+            if hasattr(model, "device"):
+                device = model.device
+            else:
+                device = get_device()
+            
             input_ids = torch.nn.utils.rnn.pad_sequence(
                 [torch.tensor(ex) for ex in batch["input_ids"]], batch_first=True
-            ).to(model.device if hasattr(model, "device") else "cpu")
+            ).to(device)
             labels = batch["soft_label"]
             # run forward pass
             raw_logits = model(input_ids)

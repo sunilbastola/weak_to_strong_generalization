@@ -3,6 +3,8 @@ from dataclasses import dataclass
 import torch
 from transformers import AutoConfig, AutoModelForCausalLM, PreTrainedModel
 
+from weak_to_strong.common import get_device
+
 
 @dataclass
 class HeadOutput:
@@ -53,7 +55,8 @@ class TransformerWithHead(PreTrainedModel):
         hidden_states = torch.stack(
             [transformer_outputs[0][i, input_lens[i] - 1, :] for i in range(len(input_lens))]
         )
-        self.score.to(hidden_states.device)
+        # Dynamically move score to the same device as hidden_states
+        self.score = self.score.to(hidden_states.device)
         if self.linear_probe:
             hidden_states = hidden_states.detach()
         logits = self.score(hidden_states)

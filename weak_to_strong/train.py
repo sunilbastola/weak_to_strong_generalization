@@ -12,7 +12,7 @@ import torch_optimizer as toptim
 from transformers.modeling_utils import load_sharded_checkpoint
 
 import weak_to_strong.logger as logger
-from weak_to_strong.common import clear_mem
+from weak_to_strong.common import clear_mem, get_device
 from weak_to_strong.eval import eval_model_acc
 from weak_to_strong.loss import xent_loss
 from weak_to_strong.model import TransformerWithHead
@@ -213,32 +213,42 @@ def train_and_save_model(
 
     already_trained = False
     # Load the model
+    device = get_device()
+    device_count = torch.cuda.device_count() if device == "cuda" else 1
+    
     if model_config.model_parallel:
-        assert torch.cuda.device_count() > 1, f"you might want more gpus for {model_config.name}"
-        model = TransformerWithHead.from_pretrained(
-            model_config.name,
-            num_labels=2,
-            device_map="auto",
-            linear_probe=linear_probe,
-            **custom_kwargs,
-        )
+        if device == "cuda":
+            assert device_count > 1, f"you might want more gpus for {model_config.name}"
+            model = TransformerWithHead.from_pretrained(
+                model_config.name,
+                num_labels=2,
+                device_map="auto",
+                linear_probe=linear_probe,
+                **custom_kwargs,
+            )
+        else:
+            # Model parallel not practical on MPS or CPU, disable it
+            print(f"model_parallel requested but running on {device}, disabling model_parallel")
+            model = TransformerWithHead.from_pretrained(
+                model_config.name, num_labels=2, linear_probe=linear_probe, **custom_kwargs
+            ).to(device)
         already_trained = maybe_load_model(model)
         # slight misnomer, more like minibatch_size_per_dp_replica
         minibatch_size = minibatch_size_per_device
     else:
         model = TransformerWithHead.from_pretrained(
             model_config.name, num_labels=2, linear_probe=linear_probe, **custom_kwargs
-        ).to("cuda")
+        ).to(device)
         already_trained = maybe_load_model(model)
         # data parallel:  currently not supported with model parallel
 
-        minibatch_size = min(minibatch_size_per_device * torch.cuda.device_count(), batch_size)
+        minibatch_size = min(minibatch_size_per_device * device_count, batch_size)
 
-        if torch.cuda.device_count() > 1:
+        if device == "cuda" and device_count > 1:
             model = torch.nn.DataParallel(model, output_device=0)
             print(
                 "Using",
-                torch.cuda.device_count(),
+                device_count,
                 "GPUs, setting minibatch_size to",
                 minibatch_size,
             )
