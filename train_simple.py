@@ -43,6 +43,7 @@ MODEL_CONFIGS = [
         name="Qwen/Qwen2.5-0.5B",       #  Weak Supervisor
         default_lr=1e-5,                # Standard stable LR for small models
         eval_batch_size=16,
+        default_optimizer="adamw",
         custom_kwargs={
             "torch_dtype": torch.bfloat16 if supports_bf16() else torch.float32,
         },
@@ -51,6 +52,7 @@ MODEL_CONFIGS = [
         name="meta-llama/Llama-3.2-3B", # Strong Student
         default_lr=5e-6,                # Slightly lower LR for larger student models
         eval_batch_size=8,
+        default_optimizer="adamw",
         custom_kwargs={
             "torch_dtype": torch.bfloat16 if supports_bf16() else torch.float32,
         },
