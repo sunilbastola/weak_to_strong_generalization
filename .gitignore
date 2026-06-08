@@ -225,7 +225,6 @@ __pycache__/
 *.pyc
 
 # Ignore massive model weights and data directories
-results/
 .cache/
 llama_weights/
 
