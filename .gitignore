@@ -217,5 +217,27 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-#Setup
+# Vast AI Setup
 setup.md
+
+# Ignore python caches
+__pycache__/
+*.pyc
+
+# Ignore massive model weights and data directories
+results/
+.cache/
+llama_weights/
+
+# Ignore your Hugging Face credentials and secret keys
+.env
+hf_token.txt
+
+# Block heavy model weight extensions everywhere, including inside results/
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.tar.gz
+EOF
